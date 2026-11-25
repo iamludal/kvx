@@ -1,0 +1,30 @@
+version: 2
+project_name: kvx
+builds:
+  - main: ./cmd/kvx
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w
+      - -X github.com/iamludal/kvx/internal/cli.version={{.Version}}
+      - -X github.com/iamludal/kvx/internal/cli.commit={{.ShortCommit}}
+      - -X github.com/iamludal/kvx/internal/cli.date={{.Date}}
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+checksum:
+  name_template: checksums.txt
+dockers_v2:
+  - images: [ghcr.io/iamludal/kvx]
+    tags: ["{{ .Version }}", latest]
+    platforms: [linux/amd64, linux/arm64]
+homebrew_casks:
+  - repository:
+      owner: iamludal
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: https://github.com/iamludal/kvx
+    description: Power tools for Vault and OpenBao KV secrets
