@@ -182,6 +182,16 @@ eval "$(kvx get secret/app/db --env)"
 kvx get secret/app/db -f password | pbcopy
 ```
 
+## Development
+
+Tests run against a real, throwaway Vault dev server (needs the `vault`
+binary): `scripts/dev-vault.sh` starts a fresh one on `:8299` with sample data.
+
+```bash
+make test        # unit tests only, no Vault needed
+make coverage    # unit + integration tests, race detector, fails under 90%
+```
+
 ## Status
 
 Early development: read commands and `cp`, `mv`, `rm`, `undelete`,

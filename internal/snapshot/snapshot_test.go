@@ -40,3 +40,31 @@ func TestSaveLoadOrder(t *testing.T) {
 		t.Errorf("snapshot mode = %v, want 0600", info.Mode().Perm())
 	}
 }
+
+func TestDir(t *testing.T) {
+	t.Setenv("KVX_BACKUP_DIR", "")
+	t.Setenv("XDG_STATE_HOME", "/state")
+	if d, _ := Dir(); d != "/state/kvx/backups" {
+		t.Errorf("Dir with XDG_STATE_HOME = %s", d)
+	}
+	t.Setenv("XDG_STATE_HOME", "")
+	t.Setenv("HOME", "/home/me")
+	if d, _ := Dir(); d != "/home/me/.local/state/kvx/backups" {
+		t.Errorf("Dir with HOME = %s", d)
+	}
+	t.Setenv("KVX_BACKUP_DIR", "/custom")
+	if d, _ := Dir(); d != "/custom" {
+		t.Errorf("Dir with KVX_BACKUP_DIR = %s", d)
+	}
+}
+
+func TestSaveUnwritableDir(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(file, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("KVX_BACKUP_DIR", filepath.Join(file, "sub")) // parent is a file
+	if _, _, err := Save("cmd", nil); err == nil {
+		t.Error("Save should fail when the backup dir cannot be created")
+	}
+}

@@ -2,3 +2,5 @@
 /dist/
 *.age
 .env
+coverage.out
+coverage.html

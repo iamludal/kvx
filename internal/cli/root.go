@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -46,14 +47,17 @@ type app struct {
 	g      *globals
 	client *vault.Client
 	out    *output.Printer
+	errW   io.Writer // prompts, progress, notes
+	in     io.Reader // confirmation answers
 }
 
-func (a *app) init() error {
+func (a *app) init(cmd *cobra.Command) error {
 	f, err := output.ParseFormat(a.g.output)
 	if err != nil {
 		return err
 	}
-	a.out = output.New(f, a.g.showSecrets, a.g.noColor)
+	a.out = output.New(cmd.OutOrStdout(), f, a.g.showSecrets, a.g.noColor)
+	a.errW, a.in = cmd.ErrOrStderr(), cmd.InOrStdin()
 	return nil
 }
 
@@ -131,7 +135,7 @@ Connection settings come from the usual VAULT_* environment variables
 		SilenceErrors: true,
 		Version:       fmt.Sprintf("%s (commit %s, built %s)", version, commit, date),
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			return a.init()
+			return a.init(cmd)
 		},
 	}
 
@@ -168,15 +172,22 @@ Connection settings come from the usual VAULT_* environment variables
 	return root
 }
 
-// Execute runs kvx and returns the process exit code.
-func Execute() int {
+// Execute runs kvx with the process arguments and returns the exit code.
+func Execute() int { return Run(os.Args[1:], os.Stdout, os.Stderr) }
+
+// Run runs kvx with args and returns the exit code: 0 ok, 1 finding (see
+// ExitError), 2 error (printed on stderr).
+func Run(args []string, stdout, stderr io.Writer) int {
 	root := NewRoot()
+	root.SetArgs(args)
+	root.SetOut(stdout)
+	root.SetErr(stderr)
 	if err := root.Execute(); err != nil {
 		var ee ExitError
 		if errors.As(err, &ee) {
 			return ee.Code
 		}
-		fmt.Fprintln(os.Stderr, "kvx: "+strings.TrimSpace(err.Error()))
+		fmt.Fprintln(stderr, "kvx: "+strings.TrimSpace(err.Error()))
 		return 2
 	}
 	return 0
