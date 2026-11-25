@@ -98,17 +98,17 @@ Values are never printed: duplicates are found by hash.`,
 							return err
 						}
 						meta = m
-						if on("stale") && time.Since(m.UpdatedTime) > maxAge {
-							add(finding{Check: "stale", Path: full, Detail: "last updated " + humanAge(m.UpdatedTime) + " ago (" + m.UpdatedTime.Format("2006-01-02") + ")"})
-						}
-						if on("versions") && m.Versions > maxVersions {
-							add(finding{Check: "versions", Path: full, Detail: fmt.Sprintf("%d versions kept (max_versions=%d)", m.Versions, m.MaxVersions)})
-						}
 						if m.CurrentDeleted {
 							if on("deleted") {
 								add(finding{Check: "deleted", Path: full, Detail: fmt.Sprintf("v%d is deleted; `kvx undelete` or `kvx rm --wipe`", m.CurrentVersion)})
 							}
 							return nil
+						}
+						if on("stale") && time.Since(m.UpdatedTime) > maxAge {
+							add(finding{Check: "stale", Path: full, Detail: "last updated " + humanAge(m.UpdatedTime) + " ago (" + m.UpdatedTime.Format("2006-01-02") + ")"})
+						}
+						if on("versions") && m.Versions > maxVersions {
+							add(finding{Check: "versions", Path: full, Detail: fmt.Sprintf("%d versions kept (max_versions=%d)", m.Versions, m.MaxVersions)})
 						}
 					}
 					if !on("empty") && !on("duplicate") && !on("naming") {

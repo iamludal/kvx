@@ -42,6 +42,8 @@ func (a *app) run(ctx context.Context, cmd *cobra.Command, m *mutationFlags, ops
 		NoBackup:    m.noBackup,
 		Concurrency: a.g.concurrency,
 		Command:     "kvx " + strings.Join(os.Args[1:], " "),
+		In:          a.in,
+		Err:         a.errW,
 	})
 }
 
@@ -99,7 +101,9 @@ func relUnder(root, p string) string {
 	return strings.TrimPrefix(p, root+"/")
 }
 
-func joinPath(dir, rel string) string { return strings.Trim(dir+"/"+rel, "/") }
+func joinPath(dir, rel string) string {
+	return strings.Trim(strings.TrimRight(dir, "/")+"/"+strings.TrimLeft(rel, "/"), "/")
+}
 
 func sameLocation(a, b *vault.KV, pa, pb string) bool {
 	return a.Address() == b.Address() && a.Namespace() == b.Namespace() && a.Mount == b.Mount && pa == pb
@@ -465,7 +469,7 @@ A directory needs -r.`,
 						case maxAge > 0 && st.Meta == nil:
 							skip("--older-than needs KV v2")
 							return nil
-						case onlyEmpty && !isEmpty(st.Data):
+						case onlyEmpty && (st.Data == nil || !isEmpty(st.Data)):
 							return nil
 						case !destroy && !wipe && len(versions) == 0 && st.Data == nil:
 							skip("already deleted")
@@ -687,7 +691,7 @@ Snapshots hold plaintext values; they live in $KVX_BACKUP_DIR or
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "Snapshot %s, %s ago: %s\n\n", s.ID, humanAge(s.Created), s.Command)
+			fmt.Fprintf(a.errW, "Snapshot %s, %s ago: %s\n\n", s.ID, humanAge(s.Created), s.Command)
 			ops, skipped, err := a.planUndo(ctx, s)
 			if err != nil {
 				return err

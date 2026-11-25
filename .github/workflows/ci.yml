@@ -1,21 +1,83 @@
-name: CI
+name: 🧪 CI
+
 on:
   push:
     branches: [main]
   pull_request:
 
+# Read-only by default; no job needs more.
+permissions:
+  contents: read
+
+# One run per branch or PR: a new push cancels the previous run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  lint:
+    name: 🧹 Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-go@v6
+      - name: 📥 Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 🐹 Set up Go
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: go.mod
-      - name: Install Vault
+      - name: 🔏 Verify modules
+        run: go mod verify
+      - name: 🧹 gofmt and go vet
+        run: make lint
+
+  test:
+    name: 🧪 Tests and coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 🐹 Set up Go
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod
+      - name: 🔐 Install Vault
         run: |
           wget -qO- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp.gpg
           echo "deb [signed-by=/usr/share/keyrings/hashicorp.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
           sudo apt-get update && sudo apt-get install -y vault
-      - run: make lint
-      - run: make integration
+          vault version
+      - name: 🧪 Unit + integration tests, race detector, coverage gate
+        run: make coverage
+      - name: 📊 Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: coverage.html
+          retention-days: 14
+          if-no-files-found: ignore
+
+  vulncheck:
+    name: 🛡️ Vulnerability check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: 🐹 Set up Go
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: go.mod # same toolchain as the release build
+      # Not golang/govulncheck-action: its go-version-input defaults to
+      # "stable" and overrides go-version-file, so it scanned a newer standard
+      # library than the one the binaries are built with.
+      - name: 🛡️ govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...

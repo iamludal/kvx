@@ -43,11 +43,14 @@ type Printer struct {
 	Color       bool
 }
 
-// New returns a printer on stdout. Color is on only for terminals and when
+// New returns a printer on w. Color is on only when w is a terminal and
 // NO_COLOR is unset.
-func New(f Format, showSecrets, noColor bool) *Printer {
-	color := !noColor && os.Getenv("NO_COLOR") == "" && term.IsTerminal(int(os.Stdout.Fd()))
-	return &Printer{W: os.Stdout, Format: f, ShowSecrets: showSecrets, Color: color}
+func New(w io.Writer, f Format, showSecrets, noColor bool) *Printer {
+	color := false
+	if file, ok := w.(*os.File); ok {
+		color = !noColor && os.Getenv("NO_COLOR") == "" && term.IsTerminal(int(file.Fd()))
+	}
+	return &Printer{W: w, Format: f, ShowSecrets: showSecrets, Color: color}
 }
 
 // Structured writes v as JSON or YAML. It returns false for table format so

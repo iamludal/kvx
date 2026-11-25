@@ -1,0 +1,32 @@
+name: 🐛 Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "⚠️ Never paste real secrets. kvx masks values unless you pass `-S`."
+  - type: input
+    id: version
+    attributes:
+      label: kvx version
+      description: Output of `kvx --version`
+    validations:
+      required: true
+  - type: input
+    id: server
+    attributes:
+      label: Vault or OpenBao version, and KV engine version
+      placeholder: Vault 1.21, KV v2
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and output
+      render: console
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true

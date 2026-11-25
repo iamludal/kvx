@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"bytes"
+	"strings"
 	"testing"
 	"time"
 
@@ -72,5 +74,62 @@ func TestDiffSides(t *testing.T) {
 func TestShellQuote(t *testing.T) {
 	if got := shellQuote("it's"); got != `'it'\''s'` {
 		t.Errorf("shellQuote = %s", got)
+	}
+}
+
+func TestHumanAge(t *testing.T) {
+	now := time.Now()
+	for d, want := range map[time.Duration]string{
+		10 * time.Second:         "10s",
+		5 * time.Minute:          "5m",
+		30 * time.Hour:           "30h",
+		10 * 24 * time.Hour:      "10d",
+		3 * 365 * 24 * time.Hour: "3y",
+	} {
+		if got := humanAge(now.Add(-d)); got != want {
+			t.Errorf("humanAge(-%v) = %s, want %s", d, got, want)
+		}
+	}
+}
+
+func TestSmallHelpers(t *testing.T) {
+	if dirsLabel(1) != "1 directory" || dirsLabel(2) != "2 directories" {
+		t.Error("dirsLabel")
+	}
+	if relUnder("", "a/b") != "a/b" || relUnder("a", "a/b") != "b" {
+		t.Error("relUnder")
+	}
+	if joinPath("", "x") != "x" || joinPath("a/", "b") != "a/b" {
+		t.Error("joinPath")
+	}
+	if suffix(" = ", "") != "" || suffix(" = ", "v") != " = v" {
+		t.Error("suffix")
+	}
+	if orDash("") != "-" || orDefault("", "d") != "d" || orDefault("x", "d") != "x" {
+		t.Error("orDash/orDefault")
+	}
+	if !isEmpty(map[string]any{"a": " ", "b": nil}) || isEmpty(map[string]any{"a": "x"}) {
+		t.Error("isEmpty")
+	}
+	if got := describeKeyChanges(map[string]any{"a": 1, "b": 2}, map[string]any{"a": 1, "b": 3, "c": 4}); got != " (+1 ~1 keys)" {
+		t.Errorf("describeKeyChanges = %q", got)
+	}
+	if describeKeyChanges(map[string]any{"a": 1}, map[string]any{"a": 1}) != "" {
+		t.Error("describeKeyChanges with no change")
+	}
+}
+
+func TestRunExitCodes(t *testing.T) {
+	var out, errW bytes.Buffer
+	if code := Run([]string{"--help"}, &out, &errW); code != 0 || !strings.Contains(out.String(), "Explore:") {
+		t.Errorf("--help: code %d\n%s", code, out.String())
+	}
+	out.Reset()
+	if code := Run([]string{"ls", "secret/", "-o", "xml"}, &out, &errW); code != 2 || !strings.Contains(errW.String(), "kvx: unknown output format") {
+		t.Errorf("bad flag value: code %d, stderr %q", code, errW.String())
+	}
+	errW.Reset()
+	if code := Run([]string{"nope"}, &out, &errW); code != 2 || !strings.Contains(errW.String(), "unknown command") {
+		t.Errorf("unknown command: code %d, stderr %q", code, errW.String())
 	}
 }
