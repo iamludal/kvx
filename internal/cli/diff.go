@@ -142,7 +142,7 @@ func (a *app) loadSide(ctx context.Context, c *vault.Client, path string, wf wal
 	if err != nil {
 		return side{}, err
 	}
-	all, err := ref.KV.ReadAll(ctx, paths, a.g.concurrency)
+	all, err := ref.KV.ReadAll(ctx, paths, a.g.concurrency, a.progress)
 	if err != nil {
 		return side{}, err
 	}

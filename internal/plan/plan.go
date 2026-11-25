@@ -19,6 +19,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/iamludal/kvx/internal/output"
+	"github.com/iamludal/kvx/internal/progress"
 	"github.com/iamludal/kvx/internal/snapshot"
 	"github.com/iamludal/kvx/internal/vault"
 )
@@ -78,6 +79,7 @@ type Options struct {
 	Command     string // recorded in the snapshot
 	In          io.Reader
 	Err         io.Writer // prompts and progress
+	Progress    progress.Factory
 }
 
 // Run shows, confirms, snapshots and applies ops.
@@ -127,6 +129,7 @@ func Run(ctx context.Context, out *output.Printer, ops []Op, skipped []string, o
 	}
 
 	var done atomic.Int64
+	bar := o.Progress.Start("Applying", len(ops))
 	for _, phase := range phases(ops) {
 		g, gctx := errgroup.WithContext(ctx)
 		g.SetLimit(o.Concurrency)
@@ -136,14 +139,17 @@ func Run(ctx context.Context, out *output.Printer, ops []Op, skipped []string, o
 					return err
 				}
 				done.Add(1)
+				bar.Add(1)
 				return nil
 			})
 		}
 		if err := g.Wait(); err != nil {
+			bar.Done()
 			fmt.Fprintf(o.Err, "%s after %d of %d changes. Restore with `kvx undo`.\n", out.Red("Stopped"), done.Load(), len(ops))
 			return err
 		}
 	}
+	bar.Done()
 	fmt.Fprintf(o.Err, "%s %s applied.\n", out.Green("✓"), output.Plural(int(done.Load()), "change"))
 	return nil
 }
@@ -242,6 +248,8 @@ func takeSnapshot(ctx context.Context, ops []Op, o Options) (*snapshot.Snapshot,
 		seen    = map[string]bool{}
 		entries []snapshot.Entry
 	)
+	bar := o.Progress.Start("Backing up", countChanging(ops))
+	defer bar.Done()
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(o.Concurrency)
 	for _, op := range ops {
@@ -254,6 +262,7 @@ func takeSnapshot(ctx context.Context, ops []Op, o Options) (*snapshot.Snapshot,
 		seen[e.Key()] = true
 		mu.Unlock()
 		if dup {
+			bar.Add(1)
 			continue
 		}
 		g.Go(func() error {
@@ -276,6 +285,7 @@ func takeSnapshot(ctx context.Context, ops []Op, o Options) (*snapshot.Snapshot,
 			mu.Lock()
 			entries = append(entries, e)
 			mu.Unlock()
+			bar.Add(1)
 			return nil
 		})
 	}
@@ -287,6 +297,16 @@ func takeSnapshot(ctx context.Context, ops []Op, o Options) (*snapshot.Snapshot,
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].Key() < entries[j].Key() })
 	return snapshot.Save(o.Command, entries)
+}
+
+func countChanging(ops []Op) int {
+	n := 0
+	for _, op := range ops {
+		if op.changesData() {
+			n++
+		}
+	}
+	return n
 }
 
 func phases(ops []Op) [][]Op {

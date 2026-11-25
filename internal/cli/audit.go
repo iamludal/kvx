@@ -86,10 +86,12 @@ Values are never printed: duplicates are found by hash.`,
 			add := func(f finding) { mu.Lock(); findings = append(findings, f); mu.Unlock() }
 			needMeta := ref.KV.Version == 2 && (on("stale") || on("deleted") || on("versions"))
 
+			bar := a.progress.Start("Auditing", len(paths))
 			g, gctx := errgroup.WithContext(ctx)
 			g.SetLimit(a.g.concurrency)
 			for _, p := range paths {
 				g.Go(func() error {
+					defer bar.Add(1)
 					full := ref.KV.Full(p)
 					var meta *vault.Meta
 					if needMeta {
@@ -145,7 +147,9 @@ Values are never printed: duplicates are found by hash.`,
 					return nil
 				})
 			}
-			if err := g.Wait(); err != nil {
+			err = g.Wait()
+			bar.Done()
+			if err != nil {
 				return err
 			}
 			for h, locs := range hashes {

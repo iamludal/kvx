@@ -64,13 +64,16 @@ func newLsCmd(a *app) *cobra.Command {
 				list[i] = entry{Path: ref.KV.Full(e), Dir: strings.HasSuffix(e, "/")}
 			}
 			if long && ref.KV.Version == 2 {
+				bar := a.progress.Start("Reading metadata", len(list))
 				g, gctx := errgroup.WithContext(ctx)
 				g.SetLimit(a.g.concurrency)
 				for i := range list {
 					if list[i].Dir {
+						bar.Add(1)
 						continue
 					}
 					g.Go(func() error {
+						defer bar.Add(1)
 						m, err := ref.KV.Metadata(gctx, entries[i])
 						if err != nil {
 							return err
@@ -79,7 +82,9 @@ func newLsCmd(a *app) *cobra.Command {
 						return nil
 					})
 				}
-				if err := g.Wait(); err != nil {
+				err := g.Wait()
+				bar.Done()
+				if err != nil {
 					return err
 				}
 			}
@@ -170,7 +175,7 @@ func newTreeCmd(a *app) *cobra.Command {
 			}
 			var data map[string]map[string]any
 			if keys {
-				if data, err = ref.KV.ReadAll(ctx, paths, a.g.concurrency); err != nil {
+				if data, err = ref.KV.ReadAll(ctx, paths, a.g.concurrency, a.progress); err != nil {
 					return err
 				}
 			}

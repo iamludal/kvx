@@ -44,6 +44,7 @@ func (a *app) run(ctx context.Context, cmd *cobra.Command, m *mutationFlags, ops
 		Command:     "kvx " + strings.Join(os.Args[1:], " "),
 		In:          a.in,
 		Err:         a.errW,
+		Progress:    a.progress,
 	})
 }
 
@@ -149,6 +150,8 @@ func (a *app) planCopy(ctx context.Context, src, dst vault.Ref, wf walkFlags, o 
 		cp        copyPlan
 		conflicts []string
 	)
+	bar := a.progress.Start("Planning", len(paths))
+	defer bar.Done()
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(a.g.concurrency)
 	for _, p := range paths {
@@ -157,6 +160,7 @@ func (a *app) planCopy(ctx context.Context, src, dst vault.Ref, wf walkFlags, o 
 			return nil, fmt.Errorf("%s: source and destination are the same", src.KV.Full(p))
 		}
 		g.Go(func() error {
+			defer bar.Add(1)
 			from, err := src.KV.Stat(gctx, p)
 			if err != nil {
 				return err
@@ -228,7 +232,9 @@ func (a *app) planCopy(ctx context.Context, src, dst vault.Ref, wf walkFlags, o 
 			return nil
 		})
 	}
-	if err := g.Wait(); err != nil {
+	err = g.Wait()
+	bar.Done()
+	if err != nil {
 		return nil, err
 	}
 	if len(conflicts) > 0 {
@@ -451,10 +457,12 @@ A directory needs -r.`,
 				if len(versions) > 0 && ref.KV.Version != 2 {
 					return fmt.Errorf("%s: --versions needs KV v2", ref)
 				}
+				bar := a.progress.Start("Planning", len(paths))
 				g, gctx := errgroup.WithContext(ctx)
 				g.SetLimit(a.g.concurrency)
 				for _, p := range paths {
 					g.Go(func() error {
+						defer bar.Add(1)
 						st, err := ref.KV.Stat(gctx, p)
 						if err != nil {
 							return err
@@ -496,7 +504,9 @@ A directory needs -r.`,
 						return nil
 					})
 				}
-				if err := g.Wait(); err != nil {
+				err = g.Wait()
+				bar.Done()
+				if err != nil {
 					return err
 				}
 			}
@@ -708,6 +718,8 @@ func (a *app) planUndo(ctx context.Context, s *snapshot.Snapshot) ([]plan.Op, []
 	clients := map[string]*vault.Client{}
 	var ops []plan.Op
 	var skipped []string
+	bar := a.progress.Start("Planning", len(s.Entries))
+	defer bar.Done()
 	for _, e := range s.Entries {
 		key := e.Address + "|" + e.Namespace
 		c, ok := clients[key]
@@ -721,6 +733,7 @@ func (a *app) planUndo(ctx context.Context, s *snapshot.Snapshot) ([]plan.Op, []
 		}
 		kv := c.KV(e.Mount, e.KVVersion)
 		cur, err := kv.Stat(ctx, e.Path)
+		bar.Add(1)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -28,6 +28,12 @@
 - **Clone** is `cp`, and also works across clusters/namespaces
   (`--to-address`, `--to-namespace`), replacing vault-kv-migrate.
 - **Parallelism** is the global `-j/--concurrency` flag (default 16).
+- **Progress** (`internal/progress`): one self-erasing line on stderr, only
+  on a terminal and only after 250 ms, so short commands and scripts never
+  see it. A spinner and a count while walking (the total is unknown), a bar
+  with an ETA for reads, planning, backups and applies. `--no-progress` or
+  `TERM=dumb` turn it off. Hand-written rather than a dependency: it is
+  ~150 lines and must never write to stdout.
 - **Docker image** is kept but secondary (CI usage); brew and binaries first.
 
 ## Ideas added
