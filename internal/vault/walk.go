@@ -10,6 +10,8 @@ import (
 
 	"github.com/gobwas/glob"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/iamludal/kvx/internal/progress"
 )
 
 // WalkOptions control a recursive listing.
@@ -25,6 +27,8 @@ type WalkOptions struct {
 	// KeepDirs also returns the directories that MaxDepth stopped at, with a
 	// trailing slash, so a depth-limited tree still shows them.
 	KeepDirs bool
+	// Progress, if set, shows a running count of the secrets found.
+	Progress progress.Factory
 }
 
 // Walk returns every secret path under root (relative to the mount), sorted.
@@ -42,6 +46,9 @@ func (kv *KV) Walk(ctx context.Context, root string, o WalkOptions) ([]string, e
 	if err != nil {
 		return nil, err
 	}
+
+	bar := o.Progress.Start("Listing "+kv.Full(root), 0)
+	defer bar.Done()
 
 	var (
 		mu      sync.Mutex
@@ -61,6 +68,7 @@ func (kv *KV) Walk(ctx context.Context, root string, o WalkOptions) ([]string, e
 		mu.Lock()
 		secrets = append(secrets, full)
 		mu.Unlock()
+		bar.Add(1)
 	}
 
 	// Breadth-first, one level at a time: each level's LISTs run in parallel.
@@ -140,11 +148,14 @@ func matchAny(gs []*glob.Pattern, s string) bool {
 }
 
 // ReadAll reads many secrets in parallel and returns them keyed by path.
-// Secrets whose latest version is deleted or destroyed are left out.
-func (kv *KV) ReadAll(ctx context.Context, paths []string, concurrency int) (map[string]map[string]any, error) {
+// Secrets whose latest version is deleted or destroyed are left out. prog, if
+// set, shows a progress bar.
+func (kv *KV) ReadAll(ctx context.Context, paths []string, concurrency int, prog progress.Factory) (map[string]map[string]any, error) {
 	if concurrency <= 0 {
 		concurrency = 16
 	}
+	bar := prog.Start("Reading", len(paths))
+	defer bar.Done()
 	out := make(map[string]map[string]any, len(paths))
 	var mu sync.Mutex
 	g, gctx := errgroup.WithContext(ctx)
@@ -152,6 +163,7 @@ func (kv *KV) ReadAll(ctx context.Context, paths []string, concurrency int) (map
 	for _, p := range paths {
 		g.Go(func() error {
 			d, err := kv.Read(gctx, p, 0)
+			bar.Add(1)
 			if errors.Is(err, ErrNotFound) {
 				return nil
 			}

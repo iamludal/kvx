@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/iamludal/kvx/internal/output"
+	"github.com/iamludal/kvx/internal/progress"
 	"github.com/iamludal/kvx/internal/vault"
 )
 
@@ -38,6 +39,7 @@ type globals struct {
 	output      string
 	showSecrets bool
 	noColor     bool
+	noProgress  bool
 	concurrency int
 	timeout     time.Duration
 }
@@ -49,6 +51,8 @@ type app struct {
 	out    *output.Printer
 	errW   io.Writer // prompts, progress, notes
 	in     io.Reader // confirmation answers
+	// progress starts progress bars on errW; nil when they are off.
+	progress progress.Factory
 }
 
 func (a *app) init(cmd *cobra.Command) error {
@@ -58,6 +62,7 @@ func (a *app) init(cmd *cobra.Command) error {
 	}
 	a.out = output.New(cmd.OutOrStdout(), f, a.g.showSecrets, a.g.noColor)
 	a.errW, a.in = cmd.ErrOrStderr(), cmd.InOrStdin()
+	a.progress = progress.For(a.errW, !a.g.noProgress)
 	return nil
 }
 
@@ -112,6 +117,7 @@ func (w *walkFlags) options(a *app) vault.WalkOptions {
 		MaxDepth:    w.depth,
 		Include:     w.include,
 		Exclude:     w.exclude,
+		Progress:    a.progress,
 	}
 }
 
@@ -147,6 +153,7 @@ Connection settings come from the usual VAULT_* environment variables
 	pf.StringVarP(&g.output, "output", "o", "table", "output format: table, json or yaml")
 	pf.BoolVarP(&g.showSecrets, "show-secrets", "S", false, "print secret values instead of masked fingerprints")
 	pf.BoolVar(&g.noColor, "no-color", false, "disable colors (also honours $NO_COLOR)")
+	pf.BoolVar(&g.noProgress, "no-progress", false, "hide progress bars (only shown on a terminal, for operations lasting more than a moment)")
 	pf.IntVarP(&g.concurrency, "concurrency", "j", 16, "number of parallel requests to Vault")
 	pf.DurationVar(&g.timeout, "timeout", 0, "abort the whole command after this duration (e.g. 30s, 5m)")
 

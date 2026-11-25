@@ -62,7 +62,7 @@ can look for a leaked password without printing it.`,
 				}
 			}
 			if inKeys || inValues {
-				data, err := ref.KV.ReadAll(ctx, paths, a.g.concurrency)
+				data, err := ref.KV.ReadAll(ctx, paths, a.g.concurrency, a.progress)
 				if err != nil {
 					return err
 				}

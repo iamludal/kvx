@@ -164,9 +164,15 @@ kvx reads the standard variables: `VAULT_ADDR`, `VAULT_TOKEN` (or
 | `--kv-version` | force KV v1 or v2 instead of auto-detection |
 | `--timeout` | abort after a duration (`30s`, `5m`) |
 | `--no-color` | no colors (`NO_COLOR` works too) |
+| `--no-progress` | no progress bars (also off when stderr is not a terminal, or `TERM=dumb`) |
 
 Commands that walk a tree also take `--depth`, `--include` and `--exclude`
 (globs on the relative path, `**` crosses directories).
+
+⏳ On large trees, kvx shows its progress on stderr (listing, reading,
+planning, backing up, applying) and erases it when done. It only appears on
+a terminal and after a moment, so quick commands, pipes, `-o json` and CI logs
+are unchanged.
 
 **Exit codes:** `0` ok · `1` something found (`search` without match, `diff`
 and `audit` with `--exit-code`) · `2` error. Handy in CI.

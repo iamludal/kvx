@@ -79,3 +79,4 @@ and [GoReleaser](https://goreleaser.com):
 | 📋 `internal/plan` | the plan, confirm, snapshot, apply engine |
 | 💾 `internal/snapshot` | local backups used by `undo` |
 | 🎨 `internal/output` | tables, JSON/YAML, masking, colors |
+| ⏳ `internal/progress` | progress bars on stderr |
