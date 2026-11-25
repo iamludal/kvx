@@ -72,9 +72,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: 🛡️ govulncheck
-        uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
+      - name: 🐹 Set up Go
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
-          repo-checkout: false
-          go-version-file: go.mod
-          go-package: ./...
+          go-version-file: go.mod # same toolchain as the release build
+      # Not golang/govulncheck-action: its go-version-input defaults to
+      # "stable" and overrides go-version-file, so it scanned a newer standard
+      # library than the one the binaries are built with.
+      - name: 🛡️ govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.10.0 ./...

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -42,6 +43,9 @@ func TestIntegrationWalk(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		// The cli integration tests run in parallel on the same server, under
+		// random "it-*" prefixes; ignore them.
+		got = slices.DeleteFunc(got, func(p string) bool { return strings.HasPrefix(p, "it-") })
 		if !slices.Equal(got, tc.want) {
 			t.Errorf("Walk(%s, %+v) = %v, want %v", tc.path, tc.opts, got, tc.want)
 		}
