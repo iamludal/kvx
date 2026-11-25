@@ -119,25 +119,31 @@ and `exec` (run a command with secrets as environment variables). See the
 
 ## 📦 Installation
 
-> [!NOTE]
-> The first release is not out yet: until then, build from source.
-
-```bash
-go install github.com/iamludal/kvx/cmd/kvx@latest
-```
-
-Once released:
+🍺 **Homebrew** (macOS and Linux):
 
 ```bash
 brew install iamludal/tap/kvx
 ```
 
+🐳 **Docker**:
+
 ```bash
 docker run --rm -e VAULT_ADDR -e VAULT_TOKEN ghcr.io/iamludal/kvx tree secret/
 ```
 
-Prebuilt binaries for Linux, macOS and Windows will be on the
-[releases page](https://github.com/iamludal/kvx/releases).
+📥 **Prebuilt binaries** for Linux, macOS and Windows (amd64 and arm64) are on
+the [releases page](https://github.com/iamludal/kvx/releases). Each archive
+has a signed build provenance attestation:
+
+```bash
+gh attestation verify kvx_*.tar.gz --repo iamludal/kvx
+```
+
+🐹 **From source**, with Go:
+
+```bash
+go install github.com/iamludal/kvx/cmd/kvx@latest
+```
 
 Shell completion:
 
