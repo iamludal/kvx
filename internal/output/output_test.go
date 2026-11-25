@@ -86,6 +86,40 @@ func TestStructuredAndTable(t *testing.T) {
 	}
 }
 
+// Color codes are invisible on screen: they must not count in column widths.
+func TestTableAlignsColoredCells(t *testing.T) {
+	var buf bytes.Buffer
+	p := &Printer{W: &buf, Format: Table, Color: true}
+	_ = p.Table([]string{"PATH", "KEY", "MATCH"}, [][]string{
+		{"secret/a/long/path", p.Yellow("uri"), p.Dim("value")},
+		{"secret/é", p.Yellow("a_much_longer_key"), p.Dim("")}, // non-ASCII path, empty last cell
+	})
+	lines := strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("got %d lines: %q", len(lines), buf.String())
+	}
+	var plain []string
+	for _, l := range lines {
+		if strings.HasSuffix(l, " ") {
+			t.Errorf("trailing spaces in %q", l)
+		}
+		plain = append(plain, ansi.ReplaceAllString(l, ""))
+	}
+	want := []string{
+		"PATH                KEY                MATCH",
+		"secret/a/long/path  uri                value",
+		"secret/é            a_much_longer_key",
+	}
+	for i := range want {
+		if plain[i] != want[i] {
+			t.Errorf("line %d = %q, want %q", i, plain[i], want[i])
+		}
+	}
+	if !strings.HasPrefix(lines[0], "\x1b[1mPATH\x1b[0m  ") {
+		t.Errorf("header cells should be bold one by one: %q", lines[0])
+	}
+}
+
 func TestColorsAndPlural(t *testing.T) {
 	off := &Printer{}
 	if off.Red("x") != "x" || off.Bold("x") != "x" || off.Blue("x") != "x" {

@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
-	"text/tabwriter"
+	"unicode/utf8"
 
 	"golang.org/x/term"
 	"gopkg.in/yaml.v3"
@@ -71,16 +72,48 @@ func (p *Printer) Structured(v any) (bool, error) {
 }
 
 // Table writes aligned columns.
+//
+// Columns are sized on what the terminal shows: color codes take no room
+// (text/tabwriter counts their bytes, which misaligned colored columns).
 func (p *Printer) Table(header []string, rows [][]string) error {
-	tw := tabwriter.NewWriter(p.W, 0, 0, 2, ' ', 0)
+	all := rows
 	if len(header) > 0 {
-		fmt.Fprintln(tw, p.Bold(strings.Join(header, "\t")))
+		h := make([]string, len(header))
+		for i, c := range header {
+			h[i] = p.Bold(c)
+		}
+		all = append([][]string{h}, rows...)
 	}
-	for _, r := range rows {
-		fmt.Fprintln(tw, strings.Join(r, "\t"))
+	var widths []int
+	for _, r := range all {
+		for i, c := range r {
+			if i == len(widths) {
+				widths = append(widths, 0)
+			}
+			widths[i] = max(widths[i], visibleWidth(c))
+		}
 	}
-	return tw.Flush()
+	var b strings.Builder
+	for _, r := range all {
+		var line strings.Builder
+		for i, c := range r {
+			line.WriteString(c)
+			if i < len(r)-1 {
+				line.WriteString(strings.Repeat(" ", widths[i]-visibleWidth(c)+2))
+			}
+		}
+		b.WriteString(strings.TrimRight(line.String(), " "))
+		b.WriteByte('\n')
+	}
+	_, err := io.WriteString(p.W, b.String())
+	return err
 }
+
+var ansi = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// visibleWidth is the number of characters s takes on screen, ignoring
+// color codes.
+func visibleWidth(s string) int { return utf8.RuneCountInString(ansi.ReplaceAllString(s, "")) }
 
 // Value renders a secret value, masked unless ShowSecrets is set.
 func (p *Printer) Value(v any) string {
@@ -153,7 +186,7 @@ func SortedKeys[V any](m map[string]V) []string {
 }
 
 func (p *Printer) paint(code, s string) string {
-	if !p.Color {
+	if !p.Color || s == "" {
 		return s
 	}
 	return "\x1b[" + code + "m" + s + "\x1b[0m"
