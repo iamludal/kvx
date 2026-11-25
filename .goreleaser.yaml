@@ -17,10 +17,24 @@ archives:
         formats: [zip]
 checksum:
   name_template: checksums.txt
+# release-please creates the GitHub release and writes its notes from
+# CHANGELOG.md; goreleaser only uploads the artifacts to it.
+release:
+  mode: keep-existing
+  prerelease: auto
+changelog:
+  disable: true
 dockers_v2:
   - images: [ghcr.io/iamludal/kvx]
     tags: ["{{ .Version }}", latest]
     platforms: [linux/amd64, linux/arm64]
+    labels:
+      # Links the ghcr.io package to the repository.
+      org.opencontainers.image.source: https://github.com/iamludal/kvx
+      org.opencontainers.image.description: Power tools for Vault and OpenBao KV secrets
+      org.opencontainers.image.licenses: MIT
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
 homebrew_casks:
   - repository:
       owner: iamludal
@@ -28,3 +42,12 @@ homebrew_casks:
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: https://github.com/iamludal/kvx
     description: Power tools for Vault and OpenBao KV secrets
+    license: MIT
+    # The binary is not signed or notarized: without this, macOS Gatekeeper
+    # may refuse to run it ("kvx is damaged and can't be opened").
+    hooks:
+      post:
+        install_steps: |
+          on_macos do
+            run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{ .StagedPath }}/kvx"]
+          end
