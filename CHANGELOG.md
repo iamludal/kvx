@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/iamludal/kvx/compare/v0.2.0...v0.2.1) (2026-11-25)
+
+
+### 🐛 Bug fixes
+
+* align table columns when colors are on ([#12](https://github.com/iamludal/kvx/issues/12)) ([19e9b26](https://github.com/iamludal/kvx/commit/19e9b261b46c930b529e3a2fccfb5ab8549435a1))
+
 ## [0.2.0](https://github.com/iamludal/kvx/compare/v0.1.0...v0.2.0) (2026-11-25)
 
 
