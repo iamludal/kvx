@@ -1,0 +1,21 @@
+name: ✨ Feature request
+description: A new command, flag or behaviour
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The task or problem, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: How could kvx help?
+      description: The command or flag you have in mind, with an example.
+      render: bash
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: How do you do it today?

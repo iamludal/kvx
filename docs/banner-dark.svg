@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 200" width="720" height="200" role="img" aria-label="kvx: power tools for Vault and OpenBao KV secrets">
+  <title>kvx</title>
+  <g transform="translate(36 36)"><defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1e293b"/>
+      <stop offset="1" stop-color="#0b1120"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="16" y1="30" x2="112" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <g fill="none" stroke="url(#gold)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- key bow and shaft -->
+    <circle cx="35" cy="50" r="15" stroke-width="9"/>
+    <path d="M50 50 H106" stroke-width="9"/>
+    <!-- the key's teeth are a directory tree: ├─ and └─ -->
+    <path d="M66 54 V94 M66 74 H80 M66 94 H80" stroke-width="5"/>
+    <path d="M102 54 V60" stroke-width="5"/>
+  </g>
+  <!-- secrets at the leaves -->
+  <g fill="#2dd4bf">
+    <circle cx="87" cy="74" r="5.5"/>
+    <circle cx="87" cy="94" r="5.5"/>
+    <circle cx="102" cy="67" r="5.5"/>
+  </g>
+</g>
+  <text x="200" y="112" fill="#f8fafc" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace" font-size="92" font-weight="700" letter-spacing="-2">kvx</text>
+  <text x="204" y="152" fill="#94a3b8" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="24">Power tools for Vault &amp; OpenBao KV secrets</text>
+</svg>
