@@ -13,7 +13,6 @@
   <a href="https://github.com/iamludal/kvx/actions/workflows/ci.yml"><img src="https://github.com/iamludal/kvx/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/iamludal/kvx/releases"><img src="https://img.shields.io/github/v/release/iamludal/kvx?include_prereleases&sort=semver" alt="Release"></a>
   <a href="go.mod"><img src="https://img.shields.io/github/go-mod/go-version/iamludal/kvx" alt="Go version"></a>
-  <a href="https://goreportcard.com/report/github.com/iamludal/kvx"><img src="https://goreportcard.com/badge/github.com/iamludal/kvx" alt="Go Report Card"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/iamludal/kvx" alt="MIT License"></a>
 </p>
 
