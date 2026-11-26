@@ -32,6 +32,10 @@ directories in parallel, understands KV v1 and v2 (Vault and OpenBao), keeps
 secret values masked by default, and makes bulk changes with a plan, a
 confirmation and an automatic backup you can `undo`.
 
+<p align="center">
+  <img src="docs/kvx-demo.gif" alt="Demo of kvx in the terminal">
+</p>
+
 ```console
 $ kvx tree secret/app --keys
 secret/app
