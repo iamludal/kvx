@@ -144,11 +144,76 @@ gh attestation verify kvx_*.tar.gz --repo iamludal/kvx
 go install github.com/iamludal/kvx/cmd/kvx@latest
 ```
 
-Shell completion:
+### ⌨️ Shell completion
+
+kvx can complete commands and flags with <kbd>Tab</kbd>. Pick your shell:
+
+<details>
+<summary><b>zsh</b> (default on macOS)</summary>
+
+Make sure `compinit` is enabled and load completions from a directory you own.
+Add this to `~/.zshrc` (the `fpath` line must come **before** `compinit`):
 
 ```bash
-kvx completion zsh > "${fpath[1]}/_kvx"   # also bash, fish, powershell
+fpath=(~/.zsh/completions $fpath)
+autoload -U compinit && compinit
 ```
+
+Then generate the completion file and reload your shell:
+
+```bash
+mkdir -p ~/.zsh/completions
+kvx completion zsh > ~/.zsh/completions/_kvx
+exec zsh
+```
+
+Installed with Homebrew? Use `$(brew --prefix)/share/zsh/site-functions/_kvx`
+as the destination instead; it is already in your `fpath`.
+
+If completion doesn't show up, clear the cache: `rm -f ~/.zcompdump*`, then
+`exec zsh`.
+
+</details>
+
+<details>
+<summary><b>bash</b></summary>
+
+Requires the [bash-completion](https://github.com/scop/bash-completion)
+package (`brew install bash-completion@2` on macOS).
+
+```bash
+# Linux
+kvx completion bash > /etc/bash_completion.d/kvx
+
+# macOS (Homebrew)
+kvx completion bash > "$(brew --prefix)/etc/bash_completion.d/kvx"
+```
+
+Open a new terminal afterwards.
+
+</details>
+
+<details>
+<summary><b>fish</b></summary>
+
+```bash
+kvx completion fish > ~/.config/fish/completions/kvx.fish
+```
+
+</details>
+
+<details>
+<summary><b>PowerShell</b></summary>
+
+```powershell
+kvx completion powershell | Out-String | Invoke-Expression
+```
+
+Add that line to your `$PROFILE` to make it permanent.
+
+</details>
+
+Run `kvx completion --help` for more details.
 
 ## ⚙️ Configuration
 
