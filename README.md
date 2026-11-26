@@ -32,26 +32,9 @@ directories in parallel, understands KV v1 and v2 (Vault and OpenBao), keeps
 secret values masked by default, and makes bulk changes with a plan, a
 confirmation and an automatic backup you can `undo`.
 
-```console
-$ kvx tree secret/app --keys
-secret/app
-├── api
-│   ├─ API_KEY
-│   └─ timeout
-└── db
-    ├─ host
-    ├─ password
-    └─ user
-
-0 directories, 2 secrets
-
-$ kvx diff secret/staging/ secret/prod/
---- secret/staging
-+++ secret/prod
-~ db
-    + host = ***c8cebb
-    ~ password: ***c1519e → ***cceec9
-```
+<p align="center">
+  <img src="docs/kvx-demo.gif" alt="Demo of kvx in the terminal">
+</p>
 
 ## 💡 Why kvx?
 
