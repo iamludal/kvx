@@ -4,9 +4,13 @@
 package vault
 
 import (
+	"errors"
 	"fmt"
+	"os/exec"
+	"strings"
 
 	"github.com/hashicorp/vault/api"
+	"github.com/hashicorp/vault/api/cliconfig"
 )
 
 // Options configure the Vault client. Empty fields fall back to the standard
@@ -25,7 +29,7 @@ type Client struct {
 	opts Options
 }
 
-// NewClient builds a client from options and the environment.
+// NewClient builds a client from options, the environment, and the Vault token helper.
 func NewClient(opts Options) (*Client, error) {
 	cfg := api.DefaultConfig()
 	if cfg.Error != nil {
@@ -40,6 +44,22 @@ func NewClient(opts Options) (*Client, error) {
 	}
 	if opts.Token != "" {
 		c.SetToken(opts.Token)
+	}
+	if c.Token() == "" {
+		helper, err := cliconfig.DefaultTokenHelper()
+		if err != nil {
+			return nil, fmt.Errorf("configuring vault token helper: check the Vault CLI configuration and helper path")
+		}
+		token, err := helper.Get()
+		if err != nil {
+			// The helper's stderr may contain credentials, so do not expose it.
+			var exitErr *exec.ExitError
+			if errors.As(err, &exitErr) {
+				return nil, fmt.Errorf("reading vault token helper: helper exited with status %d", exitErr.ExitCode())
+			}
+			return nil, fmt.Errorf("reading vault token helper: unable to run helper or read token file; check permissions and configuration")
+		}
+		c.SetToken(strings.TrimSpace(token))
 	}
 	if opts.Namespace != "" {
 		c.SetNamespace(opts.Namespace)

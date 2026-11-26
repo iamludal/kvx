@@ -114,7 +114,8 @@ directory, `@N` selects a KV v2 version (`secret/app/db@3`).
 convention), `edit` (in `$EDITOR`, with check-and-set), `export` / `import`
 (JSON, YAML, `.env`, optional [age](https://age-encryption.org) encryption)
 and `exec` (run a command with secrets as environment variables). See the
-[roadmap](docs/DESIGN.md#roadmap).
+[roadmap](docs/DESIGN.md#roadmap). These commands appear in CLI help but
+currently return a "not implemented yet" error.
 
 ## 📦 Installation
 
@@ -217,8 +218,18 @@ Run `kvx completion --help` for more details.
 
 ## ⚙️ Configuration
 
-kvx reads the standard variables: `VAULT_ADDR`, `VAULT_TOKEN` (or
-`~/.vault-token`), `VAULT_NAMESPACE`, `VAULT_CACERT`, `VAULT_SKIP_VERIFY`…
+kvx reads the standard variables: `VAULT_ADDR`, `VAULT_TOKEN`,
+`VAULT_NAMESPACE`, `VAULT_CACERT`, `VAULT_SKIP_VERIFY`…
+
+For authentication, a non-empty `--token` takes precedence over `VAULT_TOKEN`.
+If neither is set, kvx reads the Vault CLI token helper, so `vault login`
+works without exporting a token. The default helper reads `~/.vault-token`;
+a custom `token_helper` in `~/.vault` (or the file specified by
+`VAULT_CONFIG_PATH`) is invoked with `get`. Helpers inherit the environment:
+if a helper selects tokens using `VAULT_ADDR`, set that variable even when
+using `--address`. Helper configuration or execution errors are reported
+without printing helper output; an empty helper result is treated as no token.
+The default token file is stored unencrypted by Vault.
 
 | Global flag | |
 |---|---|

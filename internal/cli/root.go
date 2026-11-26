@@ -136,7 +136,7 @@ Paths always include the mount: secret/app/db. A trailing slash marks a
 directory, @N selects a KV v2 version: secret/app/db@3.
 
 Connection settings come from the usual VAULT_* environment variables
-(VAULT_ADDR, VAULT_TOKEN, VAULT_NAMESPACE, VAULT_CACERT...) or ~/.vault-token.`,
+(VAULT_ADDR, VAULT_TOKEN, VAULT_NAMESPACE, VAULT_CACERT...) and the configured Vault token helper.`,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Version:       fmt.Sprintf("%s (commit %s, built %s)", version, commit, date),
@@ -147,7 +147,7 @@ Connection settings come from the usual VAULT_* environment variables
 
 	pf := root.PersistentFlags()
 	pf.StringVar(&g.address, "address", "", "Vault address (default $VAULT_ADDR)")
-	pf.StringVar(&g.token, "token", "", "Vault token (default $VAULT_TOKEN or ~/.vault-token); prefer the env var, flags end up in shell history")
+	pf.StringVar(&g.token, "token", "", "Vault token (default $VAULT_TOKEN or Vault token helper); prefer the env var, flags end up in shell history")
 	pf.StringVarP(&g.namespace, "namespace", "n", "", "Vault Enterprise / OpenBao namespace (default $VAULT_NAMESPACE)")
 	pf.IntVar(&g.kvVersion, "kv-version", 0, "force KV engine version 1 or 2 (default: auto-detect)")
 	pf.StringVarP(&g.output, "output", "o", "table", "output format: table, json or yaml")
