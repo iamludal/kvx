@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.2](https://github.com/iamludal/kvx/compare/v0.2.1...v0.2.2) (2026-11-26)
+
+
+### 🐛 Bug fixes
+
+* Vault token helper authentication ([#17](https://github.com/iamludal/kvx/issues/17)) ([8d5210f](https://github.com/iamludal/kvx/commit/8d5210fda9d3a6645431b356cfaeed7541c6338b))
+
+
+### 📚 Documentation
+
+* add demo GIF to README ([#16](https://github.com/iamludal/kvx/issues/16)) ([43ed208](https://github.com/iamludal/kvx/commit/43ed208312d901ee84320b2e3a5350c0dd72659d))
+* **README:** clarify shell completion setup ([#14](https://github.com/iamludal/kvx/issues/14)) ([e896f77](https://github.com/iamludal/kvx/commit/e896f774a2e7ca3f1c7725fd35dac9f37603fe6d))
+
 ## [0.2.1](https://github.com/iamludal/kvx/compare/v0.2.0...v0.2.1) (2026-11-25)
 
 
