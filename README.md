@@ -36,27 +36,6 @@ confirmation and an automatic backup you can `undo`.
   <img src="docs/kvx-demo.gif" alt="Demo of kvx in the terminal">
 </p>
 
-```console
-$ kvx tree secret/app --keys
-secret/app
-├── api
-│   ├─ API_KEY
-│   └─ timeout
-└── db
-    ├─ host
-    ├─ password
-    └─ user
-
-0 directories, 2 secrets
-
-$ kvx diff secret/staging/ secret/prod/
---- secret/staging
-+++ secret/prod
-~ db
-    + host = ***c8cebb
-    ~ password: ***c1519e → ***cceec9
-```
-
 ## 💡 Why kvx?
 
 | | `vault kv` | kvx |
