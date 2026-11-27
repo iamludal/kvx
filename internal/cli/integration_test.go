@@ -549,7 +549,7 @@ func TestIntegrationGlobalErrors(t *testing.T) {
 	e := integration(t)
 	e.fails("unknown output format", "ls", "secret/", "-o", "xml")
 	e.fails("context deadline exceeded", "ls", "-r", "secret/", "--timeout", "1ns")
-	e.fails("not implemented yet", "export", "secret/")
+	e.fails("not implemented yet", "edit", "secret/x")
 	if out, _, _ := e.run("", "--version"); !strings.Contains(out, "dev") {
 		t.Errorf("--version = %q", out)
 	}

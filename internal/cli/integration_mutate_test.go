@@ -411,7 +411,7 @@ func TestIntegrationStubs(t *testing.T) {
 	e := integration(t)
 	for _, args := range [][]string{
 		{"replace", "secret/", "a", "b"}, {"normalize", "secret/"}, {"edit", "secret/x"},
-		{"export", "secret/"}, {"import", "secret/"}, {"exec", "secret/x", "true"},
+		{"exec", "secret/x", "true"},
 	} {
 		e.fails("not implemented yet", args...)
 	}
