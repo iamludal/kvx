@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
@@ -407,10 +408,64 @@ func TestIntegrationCheckAndSet(t *testing.T) {
 	}
 }
 
+func TestIntegrationReplace(t *testing.T) {
+	e := integration(t)
+	e.seed()
+	e.put(e.s("app/typed"), map[string]any{"port": 5432, "nested": map[string]any{"h": "db-old.internal"}, "list": []any{"db-old.internal", 7}})
+
+	out := e.ok("replace", e.s("app/"), "db-old.internal", "db-new.internal", "--dry-run")
+	if !strings.Contains(out, "2 update") && !strings.Contains(out, "Plan: 2 update.") && !strings.Contains(out, "Plan: 2") {
+		t.Fatalf("dry-run plan:\n%s", out)
+	}
+	if strings.Contains(out, "db-old.internal") || e.data(e.s("app/db"))["host"] != "db-old.internal" {
+		t.Errorf("dry-run leaked a value or changed data:\n%s", out)
+	}
+
+	e.ok("replace", e.s("app/"), "db-old.internal", "db-new.internal", "--yes")
+	if d := e.data(e.s("app/db")); d["host"] != "db-new.internal" || d["user"] != "app" {
+		t.Errorf("app/db = %v", d)
+	}
+	d := e.data(e.s("app/typed"))
+	if d["port"] != json.Number("5432") && d["port"] != 5432 {
+		t.Errorf("non-string value changed: %#v", d["port"])
+	}
+	if d["nested"].(map[string]any)["h"] != "db-new.internal" || d["list"].([]any)[0] != "db-new.internal" {
+		t.Errorf("nested = %v", d)
+	}
+
+	// Regex with a capture group, case-insensitive.
+	e.ok("replace", e.s("app/cache"), "-E", "-i", "^REDIS://([a-z]+)", "valkey://$1", "--yes")
+	if d := e.data(e.s("app/cache")); d["url"] != "valkey://cache:6379" {
+		t.Errorf("regex: %v", d)
+	}
+
+	// Keys, and collisions are skipped.
+	e.put(e.s("app/keys"), map[string]any{"DB_PASS": "x"})
+	e.put(e.s("app/clash"), map[string]any{"DB_PASS": "x", "DB_PASSWORD": "y"})
+	out = e.ok("replace", e.s("app/"), "-E", "^DB_PASS$", "DB_PASSWORD", "--keys", "--yes")
+	if !strings.Contains(out, "key collision") {
+		t.Errorf("collision not reported:\n%s", out)
+	}
+	if d := e.data(e.s("app/keys")); d["DB_PASSWORD"] != "x" || d["DB_PASS"] != nil {
+		t.Errorf("app/keys = %v", d)
+	}
+	if d := e.data(e.s("app/clash")); d["DB_PASS"] != "x" || d["DB_PASSWORD"] != "y" {
+		t.Errorf("app/clash should be untouched: %v", d)
+	}
+
+	// Undo restores the previous version.
+	e.ok("undo", "--yes")
+	if d := e.data(e.s("app/keys")); d["DB_PASS"] != "x" {
+		t.Errorf("undo: %v", d)
+	}
+
+	e.fails("must not be empty", "replace", e.s("app/"), "", "x")
+}
+
 func TestIntegrationStubs(t *testing.T) {
 	e := integration(t)
 	for _, args := range [][]string{
-		{"replace", "secret/", "a", "b"}, {"normalize", "secret/"}, {"edit", "secret/x"},
+		{"normalize", "secret/"}, {"edit", "secret/x"},
 		{"exec", "secret/x", "true"},
 	} {
 		e.fails("not implemented yet", args...)
