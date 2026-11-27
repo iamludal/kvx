@@ -133,3 +133,44 @@ func TestRunExitCodes(t *testing.T) {
 		t.Errorf("unknown command: code %d, stderr %q", code, errW.String())
 	}
 }
+
+func TestReplacer(t *testing.T) {
+	data := map[string]any{
+		"url": "redis://OLD:1", "port": 5432, "ok": true,
+		"OLD_KEY": "x", "nested": map[string]any{"h": "old", "OLD2": "old"}, "list": []any{"old", 1},
+	}
+	r, _ := newReplacer("old", "new", false, true)
+
+	rw := r.rewriteData(data, false, true)
+	if rw.data["url"] != "redis://new:1" || rw.data["port"] != 5432 || rw.data["ok"] != true {
+		t.Errorf("values: %v", rw.data)
+	}
+	if rw.data["nested"].(map[string]any)["h"] != "new" || rw.data["list"].([]any)[0] != "new" {
+		t.Errorf("nested: %v", rw.data)
+	}
+	if _, ok := rw.data["OLD_KEY"]; !ok || data["url"] != "redis://OLD:1" {
+		t.Error("keys must stay, input must not be modified")
+	}
+
+	rw = r.rewriteData(data, true, false)
+	if _, ok := rw.data["new_KEY"]; !ok || rw.data["url"] != "redis://OLD:1" || len(rw.changes) != 2 {
+		t.Errorf("keys: %v / %+v", rw.data, rw.changes)
+	}
+
+	rw = r.rewriteData(map[string]any{"a_old": 1, "a_new": 2}, true, false)
+	if len(rw.collisions) != 1 || rw.collisions[0] != "a_new" {
+		t.Errorf("collisions = %v", rw.collisions)
+	}
+
+	re, _ := newReplacer(`(\w+)@old`, "$1@new", true, false)
+	if got := re.apply("u@old"); got != "u@new" {
+		t.Errorf("regex = %s", got)
+	}
+	lit, _ := newReplacer("$1", "$2", false, false)
+	if got := lit.apply("a$1"); got != "a$2" {
+		t.Errorf("literal = %s", got)
+	}
+	if _, err := newReplacer("(", "x", true, false); err == nil {
+		t.Error("bad regex should fail")
+	}
+}

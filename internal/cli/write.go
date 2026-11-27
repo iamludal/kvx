@@ -15,7 +15,7 @@ func notImplemented(cmd *cobra.Command, _ []string) error {
 }
 
 func newWriteCmds(a *app) []*cobra.Command {
-	cmds := []*cobra.Command{newCpCmd(a), newMvCmd(a), newRmCmd(a), newUndeleteCmd(a), newRollbackCmd(a), newUndoCmd(a)}
+	cmds := []*cobra.Command{newCpCmd(a), newMvCmd(a), newRmCmd(a), newUndeleteCmd(a), newRollbackCmd(a), newUndoCmd(a), newReplaceCmd(a)}
 	for _, c := range cmds {
 		c.GroupID = "write"
 	}
@@ -33,21 +33,6 @@ func newWriteCmds(a *app) []*cobra.Command {
 	var wf walkFlags
 
 	// ---- change (not implemented yet)
-	rep := mk("write", &cobra.Command{
-		Use:     "replace <path> <search> <replacement>",
-		Aliases: []string{"sed"},
-		Short:   "Search and replace in values (or key names) across a tree",
-		Example: `  kvx replace secret/ db-old.internal db-new.internal --values
-  kvx replace secret/ -E 'postgres://([^@]+)@old' 'postgres://$1@new'
-  kvx replace secret/ DB_PASS DB_PASSWORD --keys     # rename a key everywhere`,
-		Args: cobra.ExactArgs(3),
-	}, true)
-	rep.Flags().BoolP("regex", "E", false, "search is a regular expression ($1 in replacement)")
-	rep.Flags().BoolP("keys", "k", false, "replace in key names")
-	rep.Flags().BoolP("values", "v", false, "replace in values (default)")
-	rep.Flags().BoolP("ignore-case", "i", false, "case-insensitive")
-	wf.register(rep)
-
 	norm := mk("write", &cobra.Command{
 		Use:   "normalize <path>",
 		Short: "Rewrite key names to a naming convention, with a collision check",

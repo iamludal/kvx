@@ -91,6 +91,7 @@ directory, `@N` selects a KV v2 version (`secret/app/db@3`).
 | `undelete` | Restore soft-deleted versions |
 | `rollback` | Publish an old version again as the latest |
 | `undo` | Put back what the last kvx change modified |
+| `replace` | Search and replace in values or key names across a tree, with a masked plan and collision check |
 
 ### 📦 Move data in and out
 
@@ -101,7 +102,7 @@ directory, `@N` selects a KV v2 version (`secret/app/db@3`).
 
 ### 🚧 Coming next
 
-`replace` (search and replace across a tree), `normalize` (rename keys to a
+`normalize` (rename keys to a
 convention), `edit` (in `$EDITOR`, with check-and-set) and `exec` (run a
 command with secrets as environment variables). See the
 [roadmap](docs/DESIGN.md#roadmap). These commands appear in CLI help but

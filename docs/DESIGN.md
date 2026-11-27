@@ -97,6 +97,17 @@ Known limits:
   Binary output is refused on a terminal (`--armor` or redirect). `--file`
   creates the file 0600 and removes it if the export fails half way.
 
+## Replace (`internal/cli/replace.go`)
+
+- Values by default, `--keys` for key names, both if both flags are given.
+  Literal substring unless `-E` (Go regex, `$1` in the replacement); `-i`.
+- Only strings are rewritten, recursively through maps and lists, so a value
+  never changes type. Input data is never mutated.
+- A secret whose renamed keys collide (`a_old` -> `a_new` while `a_new`
+  exists) is skipped and listed, the rest of the tree still runs.
+- The plan shows masked before/after values (`--show-secrets` to see them).
+  Writes use check-and-set on KV v2 and go through snapshot/`undo`.
+
 ## Open questions
 
 1. **Profiles**: a `~/.config/kvx/config.yaml` with named clusters
@@ -120,4 +131,4 @@ Known limits:
 2. v0.2: mutation engine (plan/confirm/snapshot/apply), `cp`, `mv`, `rm`,
    `undelete`, `rollback`, `undo` (done).
 3. v0.3: `export`/`import` with age (done), `exec`, `edit`.
-4. v0.4: `replace`, `normalize`, profiles, dynamic completion.
+4. v0.4: `replace` (done), `normalize`, profiles, dynamic completion.
