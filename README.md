@@ -44,6 +44,7 @@ confirmation and an automatic backup you can `undo`.
 | Search in paths, keys **and values** | ❌ | ✅ |
 | Diff secrets, versions, trees or clusters | ❌ | ✅ |
 | Copy / move whole trees, across clusters | ❌ | ✅ |
+| Export / import trees, encrypted with age | ❌ | ✅ |
 | Hygiene audit (stale, duplicated, empty…) | ❌ | ✅ |
 | Dry run, confirmation and `undo` | ❌ | ✅ |
 | Values masked in output by default | ❌ | ✅ |
@@ -91,12 +92,18 @@ directory, `@N` selects a KV v2 version (`secret/app/db@3`).
 | `rollback` | Publish an old version again as the latest |
 | `undo` | Put back what the last kvx change modified |
 
+### 📦 Move data in and out
+
+| Command | What it does |
+|---|---|
+| `export` | Dump a secret or a tree to JSON, YAML or `.env`, optionally encrypted with [age](https://age-encryption.org) |
+| `import` | Load an export (or any JSON, YAML or `.env`) into a path, through the same plan → confirm → backup → apply |
+
 ### 🚧 Coming next
 
 `replace` (search and replace across a tree), `normalize` (rename keys to a
-convention), `edit` (in `$EDITOR`, with check-and-set), `export` / `import`
-(JSON, YAML, `.env`, optional [age](https://age-encryption.org) encryption)
-and `exec` (run a command with secrets as environment variables). See the
+convention), `edit` (in `$EDITOR`, with check-and-set) and `exec` (run a
+command with secrets as environment variables). See the
 [roadmap](docs/DESIGN.md#roadmap). These commands appear in CLI help but
 currently return a "not implemented yet" error.
 
@@ -300,6 +307,14 @@ kvx mv secret/team/old-name secret/team/new-name
 
 # 🗑️ Clean up a sandbox: review first, then apply
 kvx rm -r secret/sandbox/ --wipe --older-than 30d --dry-run
+
+# 🔐 Encrypted backup of a whole mount, and a partial restore
+kvx export secret/ --format yaml --age-recipient age1... --file backup.yaml.age
+kvx import secret/ backup.yaml.age --age-identity key.txt --include 'app/**' --on-conflict skip
+
+# 📄 Seed a secret from a .env file, or write one for local development
+kvx import secret/app/config .env --on-conflict merge
+kvx export secret/app/config --format dotenv --file .env
 
 # ⏪ Back to an older version
 kvx rollback secret/app/db@4

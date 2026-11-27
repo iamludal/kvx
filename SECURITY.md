@@ -19,6 +19,9 @@ command you ran, and what was exposed or changed. Never include real secrets.
   `$KVX_BACKUP_DIR` or `~/.local/state/kvx/backups` (files 0600, directory
   0700) so `kvx undo` can restore them. Use `--no-backup` to skip it, and
   delete old snapshots you no longer need.
+- `kvx export` writes values in plaintext unless you pass `--age-recipient`.
+  Prefer encrypted exports, and `--file` (created 0600) over a shell
+  redirect, which creates the file with your umask.
 - Prefer `VAULT_TOKEN` or `~/.vault-token` over `--token`, which ends up in
   your shell history.
 

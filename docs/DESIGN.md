@@ -25,6 +25,7 @@
   key naming.
 - **Export/import**: plaintext dumps of secrets are a liability, so export can
   encrypt with age recipients, and import reads age-encrypted input.
+  Details in [Export and import](#export-and-import-internaldump).
 - **Clone** is `cp`, and also works across clusters/namespaces
   (`--to-address`, `--to-namespace`), replacing vault-kv-migrate.
 - **Parallelism** is the global `-j/--concurrency` flag (default 16).
@@ -74,6 +75,28 @@ Known limits:
 - `cp --all-versions` replays only readable versions (deleted/destroyed ones
   are skipped), so version numbers can differ from the source.
 
+## Export and import (`internal/dump`)
+
+- **Layout** (json and yaml): `kvx: 1` (format version), `source`,
+  `exported`, then `secret: {data, metadata}` for a single secret or
+  `secrets: {<relative path>: {data, metadata}}` for a tree. `metadata`
+  (custom_metadata, max_versions, cas_required) is only there with
+  `--with-metadata` and when not all defaults. Latest data only: no history.
+- **dotenv** is lossy on purpose: names upper-cased like `get --env`, trees
+  flattened with a path prefix, collisions and metadata refused (not dropped).
+- **import** also reads plain files: a map of paths to objects (a tree), a
+  single object, or a `.env` (one secret). Format from `--format`, the file
+  extension (`.age`/`.asc` ignored), or the content. Relative paths with
+  `..` or empty segments are rejected.
+- **import is a change** like `cp`: same `--on-conflict` logic
+  (`decideWrite`), check-and-set, snapshot and `undo`. When the data comes
+  from stdin, the confirmation is read from `/dev/tty`.
+- **age** via `filippo.io/age`: age (`age1…`, `age1pq1…`) and SSH recipients,
+  or a recipients file; identities from an age key file or an unencrypted
+  SSH key. No plugins or passphrases: pipe through `age -d` for those.
+  Binary output is refused on a terminal (`--armor` or redirect). `--file`
+  creates the file 0600 and removes it if the export fails half way.
+
 ## Open questions
 
 1. **Profiles**: a `~/.config/kvx/config.yaml` with named clusters
@@ -96,5 +119,5 @@ Known limits:
 1. v0.1: read commands (done), tests against a dev server, release pipeline.
 2. v0.2: mutation engine (plan/confirm/snapshot/apply), `cp`, `mv`, `rm`,
    `undelete`, `rollback`, `undo` (done).
-3. v0.3: `export`/`import` with age, `exec`, `edit`.
+3. v0.3: `export`/`import` with age (done), `exec`, `edit`.
 4. v0.4: `replace`, `normalize`, profiles, dynamic completion.

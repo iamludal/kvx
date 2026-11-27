@@ -138,6 +138,22 @@ func compileGlobs(patterns []string) ([]*glob.Pattern, error) {
 	return out, nil
 }
 
+// Filter returns a matcher applying Include/Exclude globs (same rules as
+// WalkOptions) to relative paths, for secrets that do not come from a walk.
+func Filter(include, exclude []string) (func(rel string) bool, error) {
+	inc, err := compileGlobs(include)
+	if err != nil {
+		return nil, err
+	}
+	exc, err := compileGlobs(exclude)
+	if err != nil {
+		return nil, err
+	}
+	return func(rel string) bool {
+		return (len(inc) == 0 || matchAny(inc, rel)) && !matchAny(exc, rel)
+	}, nil
+}
+
 func matchAny(gs []*glob.Pattern, s string) bool {
 	for _, g := range gs {
 		if g.Match(s) {

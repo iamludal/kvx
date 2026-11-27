@@ -5,15 +5,20 @@ go 1.26.0
 toolchain go1.26.11
 
 require (
+	filippo.io/age v1.3.2
 	github.com/gobwas/glob v1.1.0
 	github.com/hashicorp/vault/api v1.23.0
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/spf13/cobra v1.10.2
+	golang.org/x/crypto v0.57.0
 	golang.org/x/sync v0.25.0
 	golang.org/x/term v0.48.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
+	filippo.io/edwards25519 v1.2.0 // indirect
+	filippo.io/hpke v0.4.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -26,7 +31,6 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect

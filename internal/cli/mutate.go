@@ -128,8 +128,8 @@ type copyPlan struct {
 }
 
 func (a *app) planCopy(ctx context.Context, src, dst vault.Ref, wf walkFlags, o copyOptions) (*copyPlan, error) {
-	if !slices.Contains([]string{"fail", "skip", "overwrite", "merge"}, o.onConflict) {
-		return nil, fmt.Errorf("--on-conflict must be fail, skip, overwrite or merge, not %q", o.onConflict)
+	if err := checkOnConflict(o.onConflict); err != nil {
+		return nil, err
 	}
 	paths, single, err := a.sources(ctx, src, wf)
 	if err != nil {
@@ -184,49 +184,30 @@ func (a *app) planCopy(ctx context.Context, src, dst vault.Ref, wf walkFlags, o 
 			}
 			detail := "from " + src.KV.Full(p)
 
+			d := decideWrite(o.onConflict, cur, from.Data)
+			if d.label == "create" && o.allVersions && src.KV.Version == 2 && dst.KV.Version == 2 {
+				h, err := src.KV.History(gctx, p)
+				if err != nil {
+					return err
+				}
+				op.History = h
+				detail += ", " + output.Plural(len(h), "version")
+			}
+
 			mu.Lock()
 			defer mu.Unlock()
 			switch {
-			case !cur.Exists:
-				op.Label = "create"
-				if o.allVersions && src.KV.Version == 2 && dst.KV.Version == 2 {
-					h, err := src.KV.History(gctx, p)
-					if err != nil {
-						return err
-					}
-					op.History = h
-					detail += ", " + output.Plural(len(h), "version")
-				}
-			case cur.Data != nil && plan.Equal(cur.Data, from.Data):
-				cp.skipped = append(cp.skipped, dst.KV.Full(to)+" (already identical)")
-				cp.moved = append(cp.moved, p)
-				return nil
-			case o.onConflict == "fail":
+			case d.conflict:
 				conflicts = append(conflicts, dst.KV.Full(to))
 				return nil
-			case o.onConflict == "skip":
-				cp.skipped = append(cp.skipped, dst.KV.Full(to)+" (exists)")
-				return nil
-			case o.onConflict == "overwrite":
-				op.Label = "overwrite"
-				detail += describeKeyChanges(cur.Data, from.Data)
-			case o.onConflict == "merge":
-				merged := map[string]any{}
-				for k, v := range cur.Data {
-					merged[k] = v
-				}
-				for k, v := range from.Data {
-					merged[k] = v
-				}
-				if plan.Equal(merged, cur.Data) {
-					cp.skipped = append(cp.skipped, dst.KV.Full(to)+" (nothing to merge)")
+			case d.skip != "":
+				cp.skipped = append(cp.skipped, dst.KV.Full(to)+" ("+d.skip+")")
+				if d.same {
 					cp.moved = append(cp.moved, p)
-					return nil
 				}
-				op.Label, op.Data = "merge", merged
-				detail += describeKeyChanges(cur.Data, merged)
+				return nil
 			}
-			op.Detail = detail
+			op.Label, op.Data, op.Detail = d.label, d.data, detail+d.changes
 			cp.ops = append(cp.ops, op)
 			cp.moved = append(cp.moved, p)
 			return nil
@@ -237,18 +218,71 @@ func (a *app) planCopy(ctx context.Context, src, dst vault.Ref, wf walkFlags, o 
 	if err != nil {
 		return nil, err
 	}
-	if len(conflicts) > 0 {
-		slices.Sort(conflicts)
-		more := ""
-		if len(conflicts) > 10 {
-			more = fmt.Sprintf("\n  ... and %d more", len(conflicts)-10)
-			conflicts = conflicts[:10]
-		}
-		return nil, fmt.Errorf("%d destination secret(s) already exist and differ:\n  %s%s\nchoose --on-conflict skip, overwrite or merge",
-			len(conflicts), strings.Join(conflicts, "\n  "), more)
+	if err := conflictError(conflicts); err != nil {
+		return nil, err
 	}
 	slices.Sort(cp.moved)
 	return &cp, nil
+}
+
+func checkOnConflict(mode string) error {
+	if !slices.Contains([]string{"fail", "skip", "overwrite", "merge"}, mode) {
+		return fmt.Errorf("--on-conflict must be fail, skip, overwrite or merge, not %q", mode)
+	}
+	return nil
+}
+
+// writeDecision is what to do when data must land where cur stands.
+type writeDecision struct {
+	label    string         // create, overwrite or merge; "" when nothing is written
+	data     map[string]any // what to write
+	changes  string         // key-level summary for the plan, " (+1 ~2 keys)"
+	skip     string         // why nothing is written
+	same     bool           // the destination already holds the data
+	conflict bool           // exists and differs, and --on-conflict is fail
+}
+
+// decideWrite applies --on-conflict (fail, skip, overwrite or merge, where
+// the incoming keys win). Identical destinations are always skipped, so cp
+// and import can be re-run.
+func decideWrite(mode string, cur vault.State, data map[string]any) writeDecision {
+	switch {
+	case !cur.Exists:
+		return writeDecision{label: "create", data: data}
+	case cur.Data != nil && plan.Equal(cur.Data, data):
+		return writeDecision{skip: "already identical", same: true}
+	case mode == "skip":
+		return writeDecision{skip: "exists"}
+	case mode == "overwrite":
+		return writeDecision{label: "overwrite", data: data, changes: describeKeyChanges(cur.Data, data)}
+	case mode == "merge":
+		merged := map[string]any{}
+		for k, v := range cur.Data {
+			merged[k] = v
+		}
+		for k, v := range data {
+			merged[k] = v
+		}
+		if plan.Equal(merged, cur.Data) {
+			return writeDecision{skip: "nothing to merge", same: true}
+		}
+		return writeDecision{label: "merge", data: merged, changes: describeKeyChanges(cur.Data, merged)}
+	}
+	return writeDecision{conflict: true}
+}
+
+func conflictError(conflicts []string) error {
+	if len(conflicts) == 0 {
+		return nil
+	}
+	slices.Sort(conflicts)
+	n, more := len(conflicts), ""
+	if n > 10 {
+		more = fmt.Sprintf("\n  ... and %d more", n-10)
+		conflicts = conflicts[:10]
+	}
+	return fmt.Errorf("%d destination secret(s) already exist and differ:\n  %s%s\nchoose --on-conflict skip, overwrite or merge",
+		n, strings.Join(conflicts, "\n  "), more)
 }
 
 // describeKeyChanges summarises key-level changes without values: " (+2 ~1 -1 keys)".

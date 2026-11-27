@@ -66,28 +66,10 @@ func newWriteCmds(a *app) []*cobra.Command {
 	}, false).Flags().String("format", "yaml", "yaml, json or dotenv")
 
 	// ---- data
-	exp := mk("data", &cobra.Command{
-		Use:   "export <path>",
-		Short: "Dump a tree to JSON, YAML or .env, optionally encrypted with age",
-		Example: `  kvx export secret/app/ > app.json
-  kvx export secret/ --format yaml --age-recipient age1... > backup.yaml.age
-  kvx export secret/app/db --format dotenv > .env`,
-		Args: cobra.ExactArgs(1),
-	}, false)
-	exp.Flags().String("format", "json", "json, yaml or dotenv")
-	exp.Flags().Bool("with-metadata", false, "include custom_metadata and settings")
-	exp.Flags().StringArray("age-recipient", nil, "encrypt the output for this age recipient (repeatable)")
-	wf.register(exp)
-
-	imp := mk("data", &cobra.Command{
-		Use:   "import <path> [file]",
-		Short: "Load a kvx export (or any JSON/YAML/.env) into a path; reads stdin without file",
-		Example: `  kvx import secret/app-restored/ app.json
-  age -d -i key.txt backup.yaml.age | kvx import secret/ --on-conflict skip`,
-		Args: cobra.RangeArgs(1, 2),
-	}, true)
-	imp.Flags().String("on-conflict", "fail", "fail, skip, overwrite or merge")
-	imp.Flags().String("age-identity", "", "decrypt with this age identity file")
+	for _, c := range []*cobra.Command{newExportCmd(a), newImportCmd(a)} {
+		c.GroupID = "data"
+		cmds = append(cmds, c)
+	}
 
 	ex := mk("data", &cobra.Command{
 		Use:   "exec <path>... -- <command> [args...]",
