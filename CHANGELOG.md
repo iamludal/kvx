@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/iamludal/kvx/compare/v0.3.0...v0.4.0) (2026-11-27)
+
+
+### ✨ Features
+
+* allow deleting unreadable secrets ([#21](https://github.com/iamludal/kvx/issues/21)) ([97077a0](https://github.com/iamludal/kvx/commit/97077a029c5fcf341a0c3fe2b3d2c86ecc0f4165))
+
 ## [0.3.0](https://github.com/iamludal/kvx/compare/v0.2.2...v0.3.0) (2026-11-27)
 
 
