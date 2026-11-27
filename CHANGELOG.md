@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/iamludal/kvx/compare/v0.2.2...v0.3.0) (2026-11-27)
+
+
+### ✨ Features
+
+* add export and import commands ([#18](https://github.com/iamludal/kvx/issues/18)) ([849ac54](https://github.com/iamludal/kvx/commit/849ac54473ee98990353287f1bb9c031e36abb6b))
+* add replace command ([#20](https://github.com/iamludal/kvx/issues/20)) ([4240ec0](https://github.com/iamludal/kvx/commit/4240ec06d2c7ea6ef528e8a9b1537337ddd1b1f1))
+
 ## [0.2.2](https://github.com/iamludal/kvx/compare/v0.2.1...v0.2.2) (2026-11-26)
 
 
