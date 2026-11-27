@@ -95,6 +95,33 @@ func (a *app) sources(ctx context.Context, ref vault.Ref, wf walkFlags) ([]strin
 	return paths, false, nil
 }
 
+// deleteSources identifies a secret through LIST rather than reading its data.
+func (a *app) deleteSources(ctx context.Context, ref vault.Ref, wf walkFlags) ([]string, bool, error) {
+	if !ref.IsDir && ref.Path != "" {
+		parent := path.Dir(ref.Path)
+		if parent == "." {
+			parent = ""
+		}
+		keys, err := ref.KV.List(ctx, parent)
+		if err != nil {
+			return nil, false, err
+		}
+		if slices.Contains(keys, path.Base(ref.Path)) {
+			return []string{ref.Path}, true, nil
+		}
+	}
+	opts := wf.options(a)
+	opts.SkipRootCheck = true
+	paths, err := ref.KV.Walk(ctx, ref.Path, opts)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(paths) == 0 {
+		return nil, false, fmt.Errorf("nothing found at %s", ref)
+	}
+	return paths, false, nil
+}
+
 func relUnder(root, p string) string {
 	if root == "" {
 		return p
@@ -431,7 +458,7 @@ By default the version history and metadata move along (KV v2 -> v2).`,
 func newRmCmd(a *app) *cobra.Command {
 	var m mutationFlags
 	var wf walkFlags
-	var recursive, destroy, wipe, onlyEmpty bool
+	var recursive, destroy, wipe, onlyEmpty, noRead bool
 	var versionsFlag, olderThan string
 	cmd := &cobra.Command{
 		Use:     "rm <path>...",
@@ -445,7 +472,8 @@ func newRmCmd(a *app) *cobra.Command {
 
 On KV v1 every delete is final. Irreversible plans ask you to type "yes",
 and kvx keeps the latest data of every secret in its backup (kvx undo).
-A directory needs -r.`,
+A directory needs -r. --no-read --no-backup lists targets without reading
+their state or saving a backup; use it when a secret cannot be read.`,
 		Example: `  kvx rm secret/app/tmp
   kvx rm -r secret/sandbox/ --wipe --older-than 30d
   kvx rm secret/app/db --destroy --versions 1-3
@@ -459,6 +487,15 @@ A directory needs -r.`,
 			}
 			if wipe && versionsFlag != "" {
 				return fmt.Errorf("--wipe removes every version, --versions does not apply")
+			}
+			if noRead && !m.noBackup {
+				return fmt.Errorf("--no-read requires --no-backup: secret data cannot be saved")
+			}
+			if noRead && (onlyEmpty || olderThan != "") {
+				return fmt.Errorf("--no-read cannot be combined with --only-empty or --older-than")
+			}
+			if noRead && destroy && versionsFlag == "" {
+				return fmt.Errorf("--no-read --destroy requires explicit --versions")
 			}
 			versions, err := vault.ParseVersions(versionsFlag)
 			if err != nil {
@@ -481,7 +518,13 @@ A directory needs -r.`,
 				if err != nil {
 					return err
 				}
-				paths, single, err := a.sources(ctx, ref, wf)
+				var paths []string
+				var single bool
+				if noRead {
+					paths, single, err = a.deleteSources(ctx, ref, wf)
+				} else {
+					paths, single, err = a.sources(ctx, ref, wf)
+				}
 				if err != nil {
 					return err
 				}
@@ -497,6 +540,21 @@ A directory needs -r.`,
 				for _, p := range paths {
 					g.Go(func() error {
 						defer bar.Add(1)
+						if noRead {
+							op := plan.Op{KV: ref.KV, Path: p, Versions: versions, Detail: "state not read; no backup"}
+							switch {
+							case wipe:
+								op.Kind, op.Label = plan.Wipe, "wipe"
+							case destroy:
+								op.Kind, op.Label = plan.Destroy, "destroy"
+							default:
+								op.Kind, op.Label = plan.Delete, "delete"
+							}
+							mu.Lock()
+							ops = append(ops, op)
+							mu.Unlock()
+							return nil
+						}
 						st, err := ref.KV.Stat(gctx, p)
 						if err != nil {
 							return err
@@ -555,6 +613,7 @@ A directory needs -r.`,
 	f.StringVar(&versionsFlag, "versions", "", "versions to delete or destroy, e.g. 1,2,5-7 (default: latest)")
 	f.StringVar(&olderThan, "older-than", "", "only secrets not updated for this long (e.g. 90d)")
 	f.BoolVar(&onlyEmpty, "only-empty", false, "only secrets with no keys or only empty values")
+	f.BoolVar(&noRead, "no-read", false, "plan from listings without reading secret state (requires --no-backup)")
 	wf.register(cmd)
 	m.register(cmd)
 	return cmd

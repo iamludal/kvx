@@ -145,7 +145,11 @@ func Run(ctx context.Context, out *output.Printer, ops []Op, skipped []string, o
 		}
 		if err := g.Wait(); err != nil {
 			bar.Done()
-			fmt.Fprintf(o.Err, "%s after %d of %d changes. Restore with `kvx undo`.\n", out.Red("Stopped"), done.Load(), len(ops))
+			fmt.Fprintf(o.Err, "%s after %d of %d changes.", out.Red("Stopped"), done.Load(), len(ops))
+			if !o.NoBackup {
+				fmt.Fprint(o.Err, " Restore with `kvx undo`.")
+			}
+			fmt.Fprintln(o.Err)
 			return err
 		}
 	}
@@ -226,8 +230,13 @@ func confirm(out *output.Printer, ops []Op, o Options) error {
 	}
 	r := bufio.NewReader(o.In)
 	if irreversible > 0 {
-		fmt.Fprintf(o.Err, "\n%s %d of these changes cannot be undone in Vault (kvx keeps the latest data in its backup).\nType %s to apply: ",
-			out.Red("Warning:"), irreversible, out.Bold("yes"))
+		fmt.Fprintf(o.Err, "\n%s %d of these changes cannot be undone in Vault", out.Red("Warning:"), irreversible)
+		if !o.NoBackup {
+			fmt.Fprint(o.Err, " (kvx keeps the latest data in its backup)")
+		} else {
+			fmt.Fprint(o.Err, " (no kvx backup)")
+		}
+		fmt.Fprintf(o.Err, ".\nType %s to apply: ", out.Bold("yes"))
 		line, _ := r.ReadString('\n')
 		if strings.TrimSpace(line) != "yes" {
 			return errors.New("aborted, nothing was changed")

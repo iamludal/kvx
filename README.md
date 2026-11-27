@@ -257,6 +257,11 @@ Writes use KV v2 **check-and-set**: a secret someone changed between the plan
 and the apply is never overwritten. `mv` removes sources only after every
 destination has been written and read back.
 
+If a secret cannot be read, `kvx rm -r secret/ --no-read --no-backup`
+builds the plan from listings without reading secret state. It cannot create
+an undo backup or filter by age or contents; Vault may still reject a delete.
+For `--destroy`, specify `--versions` explicitly.
+
 ```console
 $ kvx rm -r secret/sandbox/ --wipe
 wipe  secret/sandbox/a  metadata and 3 versions
