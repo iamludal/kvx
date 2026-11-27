@@ -27,6 +27,8 @@ type WalkOptions struct {
 	// KeepDirs also returns the directories that MaxDepth stopped at, with a
 	// trailing slash, so a depth-limited tree still shows them.
 	KeepDirs bool
+	// SkipRootCheck avoids reading root as a secret when listing finds nothing.
+	SkipRootCheck bool
 	// Progress, if set, shows a running count of the secrets found.
 	Progress progress.Factory
 }
@@ -110,7 +112,7 @@ func (kv *KV) Walk(ctx context.Context, root string, o WalkOptions) ([]string, e
 	}
 
 	// Nothing listed: root may be a single secret.
-	if len(secrets) == 0 && root != "" {
+	if len(secrets) == 0 && root != "" && !o.SkipRootCheck {
 		if _, err := kv.Read(ctx, root, 0); err == nil {
 			return []string{root}, nil
 		}
